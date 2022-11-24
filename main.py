@@ -169,7 +169,7 @@ def crawl(screen_name, since_id=None):
     if tweets.includes:
         for image in tweets.includes.get("media", []):
             image_list[image["media_key"]] = {
-                "url": image["url"],
+                "url": image["url"] if image["type"] != "video" else image["preview_image_url"],
                 "type": image["type"],
             }
 
@@ -211,6 +211,7 @@ def post_tweets():
 
     while True:
         for username, language in usernames.items():
+            logging.info("Started crawling %s.", username)
             try:
                 if last_id.get(username):
                     _crawl = crawl(username, last_id[username])
@@ -223,9 +224,9 @@ def post_tweets():
                         image_list.append(upload(image["url"])["id"])
 
                     res = toot(
-                        status=f"From @{username}\n{tweet['text']}",
+                        status=f"From @{username}\n\n{tweet['text']}",
                         media_ids=image_list,
-                        visibility="private",
+                        visibility="public", # visibility
                         language=language,
                     )
                     logging.debug(res)
