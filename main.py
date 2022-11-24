@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 from mastodon import Mastodon
 
 
-# Set up Usernames
+### Set up Usernames
 
 
 usernames = {
@@ -243,6 +243,7 @@ def post_tweets():
 
 
 ### Main
+
 
 if __name__ == "__main__":
     bot = login()
