@@ -1,0 +1,17 @@
+[Unit]
+Description = mastodonbot tweet crawler
+After = network.target
+
+[Service]
+Type = simple
+ExecStart = python3 main.py
+WorkingDirectory = /srv/mastodonbot/
+User = stypr
+Group = stypr
+Restart = on-failure
+SyslogIdentifier = mastodonbot
+RestartSec = 5
+TimeoutStartSec = infinity
+
+[Install]
+WantedBy = multi-user.target
