@@ -2,11 +2,9 @@
 
 ## Introduction
 
-Mastodon Bot crawling Twitter accounts. 
+Mastodon Bot crawling tweets from Twitter accounts.
 
-This was initially intended to collect official notices from the online game.
-
-Unfortunately, there are no other alternative channels to collect the official information.
+This was initially developed to collect official notices from an online game. Unfortunately, there were no other alternative channels to crawl info from..
 
 ## Disclaimer
 
