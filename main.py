@@ -27,8 +27,6 @@ usernames = {
     "CP_inc_official": "ja",
     "prsk_fan_gamer": "ko",
     "kr_pjsekai": "ko",
-    "ProSeka_Image": "ko",
-    "pskwdsvbs": "ko",
 }
 
 
@@ -226,7 +224,7 @@ def post_tweets():
                     res = toot(
                         status=f"From @{username}\n\n{tweet['text']}",
                         media_ids=image_list,
-                        visibility="public", # visibility
+                        visibility="private", # visibility
                         language=language,
                     )
                     logging.debug(res)
