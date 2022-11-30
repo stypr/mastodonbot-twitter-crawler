@@ -18,22 +18,10 @@ from dotenv import load_dotenv
 from mastodon import Mastodon
 
 
-### Set up Usernames
-
-
-usernames = {
-    "pj_sekai": "ja",
-    "pjsekai_event": "ja",
-    "CP_inc_official": "ja",
-    "prsk_fan_gamer": "ko",
-    "kr_pjsekai": "ko",
-}
-
-
 ### Init & Import Environment Variables
 
 
-bot = None
+BOT = None
 logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
@@ -44,6 +32,23 @@ BOT_USERNAME = os.getenv("BOT_USERNAME")
 BOT_PASSWORD = os.getenv("BOT_PASSWORD")
 
 
+### Import & Parse Twitter Account List
+
+
+TWITTER_ACCOUNT_ENV = os.getenv("TWITTER_ACCOUNT_LIST")
+TWITTER_ACCOUNT_LIST = {}
+for ACCOUNT in TWITTER_ACCOUNT_ENV.split("\n"):
+    _account = ACCOUNT.strip()
+    if not _account:
+        continue
+    _temp = _account.split(":")
+    if len(_temp) == 1:
+        _temp.append("en")
+    TWITTER_ACCOUNT_LIST[_temp[0]] = _temp[1]
+
+del TWITTER_ACCOUNT_ENV
+
+
 ### Storing last_tweet_id
 
 
@@ -51,8 +56,8 @@ def save_dict(value, filename="local.secret"):
     """
     Save dictionary to filename
     """
-    with open(filename, "wb") as f:
-        pickle.dump(value, f)
+    with open(filename, "wb") as fhandle:
+        pickle.dump(value, fhandle)
 
 
 def load_dict(filename="local.secret"):
@@ -62,8 +67,8 @@ def load_dict(filename="local.secret"):
     if not os.path.exists(filename):
         return {}
 
-    with open(filename, "rb") as f:
-        return pickle.load(f)
+    with open(filename, "rb") as fhandle:
+        return pickle.load(fhandle)
 
 
 ### Mastodon Authentication
@@ -84,7 +89,11 @@ def login():
 
     # Login
     mastodon = Mastodon(client_id="client.secret")
-    mastodon.log_in(BOT_USERNAME, BOT_PASSWORD, to_file="user.secret")
+    mastodon.log_in(
+        BOT_USERNAME,
+        BOT_PASSWORD,
+        to_file="user.secret"
+    )
 
     # Use token for the instance
     mastodon = Mastodon(access_token="user.secret")
@@ -110,7 +119,7 @@ def upload(media_file):
         mime_type = req.headers["Content-Type"]
         media_file = req.content
 
-    return bot.media_post(
+    return BOT.media_post(
         media_file=media_file,
         mime_type=mime_type
     )
@@ -121,7 +130,7 @@ def toot(status, media_ids=None, visibility="private", language="ja"):
     Write status
     Private visiblity with Japanese by default.
     """
-    return bot.status_post(
+    return BOT.status_post(
         status=status,
         media_ids=media_ids,
         visibility=visibility,
@@ -149,8 +158,11 @@ def crawl(screen_name, since_id=None):
         screen_id,
         max_results=5,
         since_id=since_id,
-        tweet_fields="id,created_at,text,author_id,in_reply_to_user_id,referenced_tweets,attachments,withheld,entities,context_annotations,conversation_id",
-        media_fields="media_key,duration_ms,height,preview_image_url,type,url,width,public_metrics,non_public_metrics,organic_metrics,promoted_metrics,alt_text",
+        tweet_fields=(
+            "id,created_at,text,author_id,referenced_tweets,attachments,"
+            + "entities,context_annotations,conversation_id"
+        ),
+        media_fields="media_key,duration_ms,height,preview_image_url,type,url,width,alt_text",
         expansions="attachments.media_keys",
         exclude="replies,retweets",
     )
@@ -159,18 +171,16 @@ def crawl(screen_name, since_id=None):
     result = []
 
     if not tweets.data:
-        return {
-            "data": {},
-            "new_since_id": since_id
-        }
+        return {"data": {}, "new_since_id": since_id}
 
     if tweets.includes:
         for image in tweets.includes.get("media", []):
             image_list[image["media_key"]] = {
-                "url": image["url"] if image["type"] != "video" else image["preview_image_url"],
+                "url": image["url"]
+                if image["type"] != "video"
+                else image["preview_image_url"],
                 "type": image["type"],
             }
-
 
     for tweet in tweets.data:
         _id = tweet.id
@@ -189,11 +199,7 @@ def crawl(screen_name, since_id=None):
         except:
             pass
 
-        result.append({
-            "id": _id,
-            "text": _text,
-            "image": _image
-        })
+        result.append({"id": _id, "text": _text, "image": _image})
 
     return {
         "data": result,
@@ -208,7 +214,7 @@ def post_tweets():
     last_id = load_dict()
 
     while True:
-        for username, language in usernames.items():
+        for username, language in TWITTER_ACCOUNT_LIST.items():
             logging.info("Started crawling %s.", username)
             try:
                 if last_id.get(username):
@@ -224,7 +230,7 @@ def post_tweets():
                     res = toot(
                         status=f"From @{username}\n\n{tweet['text']}",
                         media_ids=image_list,
-                        visibility="private", # visibility
+                        visibility="private",  # visibility
                         language=language,
                     )
                     logging.debug(res)
@@ -235,7 +241,9 @@ def post_tweets():
                 time.sleep(5)
 
             except Exception as exc:
-                logging.exception("Error occured while checking %s: %s", username, str(exc))
+                logging.exception(
+                    "Error occured while checking %s: %s", username, str(exc)
+                )
 
         logging.info("Wait for 5 minutes...")
         time.sleep(5 * 60)
@@ -245,5 +253,5 @@ def post_tweets():
 
 
 if __name__ == "__main__":
-    bot = login()
+    BOT = login()
     post_tweets()
